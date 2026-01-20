@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>自分用 TTS → mp3 コマンド生成</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 20px;
+      line-height: 1.6;
+      background: #fafafa;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: 1fr 400px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 1024px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        padding: 0;
+      }
+
+      .container {
+        padding: 0;
+      }
+    }
+
+    h1 {
+      font-size: 20px;
+      margin: 0 0 24px;
+      color: #333;
+      font-weight: 600;
+      max-width: 1200px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 0 20px;
+    }
+
+    h2 {
+      font-size: 16px;
+      margin: 24px 0 12px;
+      color: #444;
+      font-weight: 600;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    .section {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid #e0e0e0;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #666;
+      margin: 0 0 16px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: 12px;
+      margin: 12px 0;
+      align-items: start;
+    }
+
+    .row>div:first-child {
+      font-weight: 500;
+      color: #555;
+      padding-top: 8px;
+    }
+
+    textarea {
+      width: 90%;
+      min-height: 120px;
+      font-family: inherit;
+    }
+
+    input,
+    select,
+    textarea {
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #4a90e2;
+      box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+    }
+
+    .hint {
+      color: #666;
+      font-size: 14px;
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      line-height: 1.5;
+      overflow-x: auto;
+    }
+
+    button {
+      padding: 12px 20px;
+      border: 0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+      font-weight: 500;
+      background: #4a90e2;
+      color: white;
+    }
+
+    button:hover {
+      background: #357abd;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button.copied {
+      background-color: #4caf50;
+    }
+
+    button.copied:hover {
+      background-color: #45a049;
+    }
+
+    .btns {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 20px;
+    }
+
+    .small {
+      font-size: 12px;
+      color: #888;
+    }
+
+    .small code {
+      background: #f0f0f0;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+
+    .main-content {
+      min-width: 0;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 20px;
+    }
+
+    .usage {
+      padding: 20px;
+      background: #f0f7ff;
+      border: 1px solid #cce5ff;
+      border-radius: 12px;
+      font-size: 13px;
+    }
+
+    .usage h3 {
+      margin: 0 0 12px 0;
+      font-size: 15px;
+      color: #0066cc;
+      font-weight: 600;
+    }
+
+    .usage ol {
+      margin: 8px 0;
+      padding-left: 24px;
+    }
+
+    .usage li {
+      margin: 6px 0;
+      line-height: 1.6;
+    }
+
+    .usage code {
+      background: rgba(0, 0, 0, 0.05);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>macOS「say」→ mp3（ffmpeg）コマンド生成</h1>
+
+  <div class="container">
+    <div class="main-content">
+      <div class="section">
+        <div class="section-title">📝 入力設定</div>
+        <div class="row">
+          <div>入力方式</div>
+          <select id="mode">
+            <option value="inline">直接テキスト</option>
+            <option value="file">テキストファイル（input.txt）</option>
+          </select>
+        </div>
+
+        <div class="row">
+          <div>読み上げ文章</div>
+          <div>
+            <textarea id="text" placeholder="ここに読み上げたい文章を入れる"></textarea>
+            <div class="hint">長文は「テキストファイル方式」推奨。input.txt を同じフォルダに置く。</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">🎤 音声設定</div>
+        <div class="row">
+          <div>voice（声）</div>
+          <div>
+            <select id="voice">
+              <option value="">（指定しない：システム既定）</option>
+              <optgroup label="日本語（ja_JP）">
+                <option value="Kyoko">Kyoko</option>
+                <option value="Eddy (日本語（日本）)">Eddy (日本語（日本）)</option>
+                <option value="Flo (日本語（日本）)">Flo (日本語（日本）)</option>
+                <option value="Grandma (日本語（日本）)">Grandma (日本語（日本）)</option>
+                <option value="Grandpa (日本語（日本）)">Grandpa (日本語（日本）)</option>
+                <option value="Reed (日本語（日本）)">Reed (日本語（日本）)</option>
+                <option value="Rocko (日本語（日本）)">Rocko (日本語（日本）)</option>
+                <option value="Sandy (日本語（日本）)">Sandy (日本語（日本）)</option>
+                <option value="Shelley (日本語（日本）)">Shelley (日本語（日本）)</option>
+              </optgroup>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>rate（速さ）</div>
+          <div>
+            <input id="rate" type="number" value="170" min="80" max="400" />
+            <div class="hint">目安: 160〜220。数字が大きいほど速い。</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">🎵 出力設定</div>
+        <div class="row">
+          <div>出力名</div>
+          <div>
+            <input id="base" value="yomiage" />
+            <div class="hint">例: yomiage → yomiage.aiff / yomiage.mp3 が生成される</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>日時を自動付与</div>
+          <div>
+            <input id="addTimestamp" type="checkbox" checked />
+            <div class="hint">ON: yomiage_20260119_1530.mp3 のように日時が自動で付与されます</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>mp3品質</div>
+          <select id="quality">
+            <option value="192k">標準（192k）</option>
+            <option value="256k">高め（256k）</option>
+            <option value="128k">軽め（128k）</option>
+            <option value="v2">VBR（だいたい良い感じ）</option>
+          </select>
+        </div>
+
+        <div class="row">
+          <div>サンプルレート</div>
+          <select id="samplerate">
+            <option value="">指定しない（デフォルト）</option>
+            <option value="44100">44100 Hz（CD品質）</option>
+            <option value="48000">48000 Hz（標準）</option>
+            <option value="22050">22050 Hz（軽量）</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">🔊 音質調整</div>
+        <div class="row">
+          <div>音量を均す</div>
+          <select id="loudnorm">
+            <option value="on">ON（loudnorm）</option>
+            <option value="off">OFF</option>
+          </select>
+        </div>
+
+        <div class="row">
+          <div>音量調整</div>
+          <div>
+            <input id="volume" type="number" value="1.0" step="0.1" min="0.1" max="3.0" />
+            <div class="hint">1.0が標準。0.5で半分、2.0で2倍。loudnormと併用可能。</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>AIFF削除</div>
+          <div>
+            <input id="removeAiff" type="checkbox" checked />
+            <div class="hint">ON: mp3変換後にAIFFファイルを自動削除</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="sidebar">
+      <div class="section">
+        <div class="btns" style="flex-direction: column; align-items: stretch;">
+          <button id="gen" style="width: 100%; margin-bottom: 8px;">コマンド生成</button>
+          <button id="copy" style="width: 100%;">コピー</button>
+        </div>
+        <div style="margin-top: 16px; font-size: 12px; color: #666; line-height: 1.5;">
+          <strong>コピー後:</strong> ターミナルを開いてペーストして実行
+        </div>
+      </div>
+
+      <h2 style="margin-top: 24px;">生成コマンド</h2>
+      <pre id="out">(ここに出ます)</pre>
+
+      <div class="usage" style="margin-top: 24px;">
+        <h3>使い方</h3>
+        <ol>
+          <li>設定を調整して「コマンド生成」をクリック</li>
+          <li>生成されたコマンドを「コピー」ボタンでコピー</li>
+          <li>ターミナル（Terminal.app）を開く</li>
+          <li>このHTMLファイルと同じフォルダに移動（<code>cd</code> コマンド）</li>
+          <li>コピーしたコマンドをターミナルに貼り付けて実行（Enterキー）</li>
+          <li>mp3ファイルが生成されます</li>
+        </ol>
+        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #cce5ff; font-size: 12px; color: #555;">
+          <div style="margin-bottom: 8px;">
+            <strong>※ 事前準備:</strong> 先に ffmpeg が必要です（Homebrewなら <code>brew install ffmpeg</code>）
+          </div>
+          <div>
+            ※ ターミナルの開き方: アプリケーション → ユーティリティ → ターミナル、または Spotlight（⌘+Space）で「ターミナル」と検索
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const escForShell = (s) => {
+      // ダブルクォートで囲む前提。特殊文字をエスケープして安全にする
+      // $ ` \ " をエスケープ
+      return '"' + s.replaceAll('\\', '\\\\').replaceAll('$', '\\$').replaceAll('`', '\\`').replaceAll('"', '\\"') + '"';
+    };
+
+    const getTimestamp = () => {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      return `${year}${month}${day}_${hours}${minutes}`;
+    };
+
+    const build = () => {
+      const mode = document.getElementById("mode").value;
+      const text = document.getElementById("text").value.trim();
+      const voice = document.getElementById("voice").value.trim();
+      const rate = document.getElementById("rate").value.trim();
+      let base = document.getElementById("base").value.trim() || "yomiage";
+      const addTimestamp = document.getElementById("addTimestamp").checked;
+      const quality = document.getElementById("quality").value;
+      const loudnorm = document.getElementById("loudnorm").value;
+      const volume = parseFloat(document.getElementById("volume").value) || 1.0;
+      const samplerate = document.getElementById("samplerate").value;
+      const removeAiff = document.getElementById("removeAiff").checked;
+
+      if (addTimestamp) {
+        base = `${base}_${getTimestamp()}`;
+      }
+
+      const aiff = `${base}.aiff`;
+      const mp3 = `${base}.mp3`;
+
+      let sayParts = ["say"];
+      if (voice) sayParts.push("-v", escForShell(voice));
+      if (rate) sayParts.push("-r", rate);
+
+      if (mode === "file") {
+        // input.txt 固定（自分用にここ変えてOK）
+        sayParts.push("-f", "input.txt", "-o", escForShell(aiff));
+      } else {
+        sayParts.push(escForShell(text || "（文章が空です）"), "-o", escForShell(aiff));
+      }
+
+      let ffParts = ["ffmpeg", "-y", "-i", escForShell(aiff)];
+
+      // サンプルレート
+      if (samplerate) {
+        ffParts.push("-ar", samplerate);
+      }
+
+      // フィルタ（音量調整とloudnormを組み合わせ）
+      let filters = [];
+      if (volume !== 1.0) {
+        filters.push(`volume=${volume}`);
+      }
+      if (loudnorm === "on") {
+        filters.push("loudnorm");
+      }
+      if (filters.length > 0) {
+        ffParts.push("-af", escForShell(filters.join(",")));
+      }
+
+      // 品質
+      if (quality.endsWith("k")) {
+        ffParts.push("-codec:a", "libmp3lame", "-b:a", quality);
+      } else if (quality === "v2") {
+        ffParts.push("-codec:a", "libmp3lame", "-q:a", "2");
+      }
+
+      ffParts.push(escForShell(mp3));
+
+      let cmd = `# 1. AIFF 作成
+${sayParts.join(" ")}
+
+# 2. mp3 変換
+${ffParts.join(" ")}`;
+
+      if (removeAiff) {
+        cmd += `
+
+# 3. AIFF を削除
+rm -f ${escForShell(aiff)}`;
+      }
+
+      return cmd;
+    };
+
+    document.getElementById("gen").addEventListener("click", () => {
+      document.getElementById("out").textContent = build();
+    });
+
+    document.getElementById("copy").addEventListener("click", async () => {
+      const txt = document.getElementById("out").textContent;
+      const btn = document.getElementById("copy");
+      try {
+        await navigator.clipboard.writeText(txt);
+        const originalText = btn.textContent;
+        btn.textContent = "コピー済み";
+        btn.classList.add("copied");
+        setTimeout(() => {
+          btn.textContent = originalText;
+          btn.classList.remove("copied");
+        }, 2000);
+      } catch {
+        alert("コピーできなかった…出力欄を手動でコピーしてね");
+      }
+    });
+
+    // 初期生成
+    document.getElementById("out").textContent = build();
+  </script>
+</body>
+
+</html>
